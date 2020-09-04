@@ -3,15 +3,29 @@
     <nav-bar class="home-nav">
       <div slot="center">购物街</div>
     </nav-bar>
-    <scroll class="content" ref="scroll">
-      <home-swiper :banners="banner" />
-      <recommend-view :recommends="recommend" />
+    <tab-control
+      :titles="['流行','新款','精品']"
+      @tabClick="tabClick"
+      ref="tabControl1"
+      class="tab-control"
+      v-show="isTabFixed"
+    />
+    <scroll
+      class="content"
+      ref="scroll"
+      :probe-type="3"
+      @scroll="contentScroll"
+      :pull-up-load="true"
+      @pullingUp="loadMore"
+    >
+      <home-swiper :banners="banners" @swiperImageLoad="swiperImageLoad" />
+      <recommend-view :recommends="recommends" />
       <feature-view />
-      <tab-control class="tab-control" :titles="['流行','新款','精品']" @tabClick="tabClick" />
+      <tab-control :titles="['流行','新款','精品']" @tabClick="tabClick" ref="tabControl2" />
       <goods-list :goods="showGoods" />
     </scroll>
 
-    <back-top @click.native="backClick" />
+    <back-top @click.native="backClick" v-show="isShowBackTop" />
     <!--修饰符 .native :在我们需要监听一个组件的原生事件时，
     必须给对应的事件加上 .native 才能监听原生组件-->
     <!-- <ul>
@@ -70,9 +84,9 @@
 </template>
 
 <script>
-import HomeSwiper from "./chlidComps/HomeSwiper";
-import RecommendView from "./chlidComps/RecommendView";
-import FeatureView from "./chlidComps/FeatureView";
+import HomeSwiper from "./childComps/HomeSwiper";
+import RecommendView from "./childComps/RecommendView";
+import FeatureView from "./childComps/FeatureView";
 
 import NavBar from "components/common/navbar/NavBar";
 import TabControl from "components/content/tabControl/TabControl";
@@ -81,6 +95,9 @@ import Scroll from "components/common/scroll/Scroll";
 import BackTop from "components/content/backTop/BackTop";
 
 import { getHomeMultidata, getHomeGoods } from "network/home";
+import { debounce } from "common/utils";
+import { itemListenterMixin } from "common/mixin";
+
 // import Swiper from 'components/common/swiper/Swiper'
 // import SwiperItem from 'components/common/swiper/SwiperItem'
 
@@ -98,6 +115,7 @@ export default {
     Scroll,
     BackTop,
   },
+  mixins: [itemListenterMixin],
   data() {
     return {
       // result:null
@@ -109,12 +127,36 @@ export default {
         sell: { page: 0, list: [] },
       },
       currentType: "pop",
+      isShowBackTop: false,
+      tabOffsetTop: 0,
+      isTabFixed: false,
+      saveY: 0,
+      // itemImgListenter: null,
     };
   },
   computed: {
     showGoods() {
       return this.goods[this.currentType].list;
     },
+  },
+  destroyed() {
+    console.log("home destoryed");
+  },
+  activated() {
+    // console.log("activated");
+    // this.$refs.scroll.scrollTo(0, this.saveY, 0);
+    // 注意这里假如给0 会导致返回首页到顶部 可以给其他任意数或者不给值
+    this.$refs.scroll.scrollTo(0, this.saveY, -1);
+    // this.$refs.scroll.scrollTo(0, this.saveY);
+    this.$refs.scroll.refresh();
+  },
+  deactivated() {
+    // 1.保存Y值
+    // console.log("deactivated");
+    this.saveY = this.$refs.scroll.getScrollY();
+
+    // 2.取消全局事件的监听
+    this.$bus.$off("itemImgLoad", this.itemImgListenter);
   },
   created() {
     // 1. 请求多个数据
@@ -125,10 +167,33 @@ export default {
     this.getHomeGoods("new");
     this.getHomeGoods("sell");
   },
+  mounted() {
+    // // 3.监听item中的图片加载完成
+    // this.$bus.$on("itemImageLoad", () => {
+    //   // console.log("-------");
+    //   this.$refs.scroll.refresh();
+    //   // console.log("-------");
+    // });
+    /**
+     * 防抖函数 解决某一件事执行非常频繁的时候
+     * 直接执行refresh  那么refresh函会被执行30次
+     * 可以将refresh函数传入到debounce函数中，生成一个新的函数
+     * 之后在调用非常频繁的时候，就使用新生成的函数
+     * 而新生成的函数，并不会非常频繁的调用。如果下一次执行来的非常快，那么上一次取消掉
+     */
+    // // 1.图片加载完成的事件监听
+    // const refresh = debounce(this.$refs.scroll.refresh, 50);
+    // // 对监听的事件进行保存
+    // this.itemImgListenter = () => {
+    //   refresh();
+    // };
+    // this.$bus.$on("itemImageLoad", this.itemImgListenter);
+  },
   methods: {
     /**
      * 事件监听相关方法
      */
+
     tabClick(index) {
       // console.log(index);
       switch (index) {
@@ -142,12 +207,31 @@ export default {
           this.currentType = "sell";
           break;
       }
+      this.$refs.tabControl1.currentIndex = index;
+      this.$refs.tabControl2.currentIndex = index;
     },
     backClick() {
       this.$refs.scroll.scrollTo(0, 0);
       // this.$refs.scroll.scroll.scrollTo(0, 0);
       // console.log(this.$refs.scroll.message);
       // console.log("backClick");
+    },
+    contentScroll(position) {
+      // 1. 判断BackTop是否显示
+      // console.log(position);
+      this.isShowBackTop = -position.y > 1000;
+
+      // 2.决定tabControl是否吸顶(position:fixed)
+      this.isTabFixed = -position.y > this.tabOffsetTop;
+    },
+    loadMore() {
+      // console.log("加载更多的方法");
+      this.getHomeGoods(this.currentType);
+    },
+    swiperImageLoad() {
+      // console.log(this.$refs.tabControl.$el.offsetTop);
+      this.tabOffsetTop = this.$refs.tabControl2.$el.offsetTop;
+      // console.log(this.tabOffsetTop);
     },
     /**
      * 网络请求相关方法
@@ -157,7 +241,7 @@ export default {
         // console.log(res);
         // this.result = res;
         this.banners = res.data.banner.list;
-        this.recommends = res.data.component.list;
+        this.recommends = res.data.recommend.list;
       });
     },
     getHomeGoods(type) {
@@ -166,6 +250,9 @@ export default {
         // console.log(res);
         this.goods[type].list.push(...res.data.list);
         this.goods[type].page += 1;
+
+        // 完成上拉加载更多
+        this.$refs.scroll.finishPullUp();
       });
     },
   },
@@ -184,17 +271,18 @@ export default {
   background-color: var(--color-tint);
   color: #fff;
 
+  /* 在使用浏览器原生滚动时，为了让导航不跟随一起滚动 */
   position: fixed;
   left: 0;
   right: 0;
   top: 0;
   z-index: 9;
 }
-.tab-control {
+/* .tab-control {
   position: sticky;
   top: 44px;
   z-index: 9;
-}
+} */
 .content {
   /* height: 300px; */
   overflow: hidden;
@@ -205,6 +293,12 @@ export default {
   left: 0;
   right: 0;
 }
+
+.tab-control {
+  position: relative;
+  z-index: 9;
+}
+
 /* .content {
   height: calc(100% - 93px);
   overflow: hidden;

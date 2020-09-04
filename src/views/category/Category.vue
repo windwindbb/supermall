@@ -126,11 +126,11 @@ export default {
       pullUpLoad: true,
     });
 
-    this.on("scroll", (position) => {
+    this.scroll.on("scroll", (position) => {
       console.log(position);
     });
 
-    this.on("pullingUp", () => {
+    this.scroll.on("pullingUp", () => {
       console.log("上拉加载更多");
     });
   },
@@ -138,9 +138,9 @@ export default {
 </script>
 
 <style scoped>
-.wapper {
+.wrapper {
   height: 150px;
-  background-color: blue;
+  background-color: red;
 
   /* overflow: hidden; */
   /* overflow-y: scroll; */

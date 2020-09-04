@@ -9,7 +9,7 @@
         <div
           v-for="(item, index) in slideCount"
           class="indi-item"
-          :class="{active:index === currentIndex-1}"
+          :class="{active: index === currentIndex-1}"
           :key="index"
         ></div>
       </slot>
@@ -34,7 +34,7 @@ export default {
       default: 0.25,
     },
     showIndicator: {
-      type: Number,
+      type: Boolean,
       default: true,
     },
   },
@@ -42,24 +42,24 @@ export default {
     return {
       slideCount: 0, // 元素个数
       totalWidth: 0, // swiper的宽度
-      swiperStyle: {}, //swiper样式
-      currentIndex: 1, //当前的index
+      swiperStyle: {}, // swiper样式
+      currentIndex: 1, // 当前的index
       scrolling: false, // 是否正在滚动
     };
   },
   mounted: function () {
-    // 1.操作DOM 在前后添加slide
+    // 1.操作DOM, 在前后添加Slide
     setTimeout(() => {
       this.handleDom();
 
       // 2.开启定时器
       this.startTimer();
-    }, 100);
+    }, 200);
   },
   methods: {
-    /*
-    定时器操作
-    */
+    /**
+     * 定时器操作
+     */
     startTimer: function () {
       this.playTimer = window.setInterval(() => {
         this.currentIndex++;
@@ -69,23 +69,25 @@ export default {
     stopTimer: function () {
       window.clearInterval(this.playTimer);
     },
-    /*
-   滚动到正确的位置
-   */
 
+    /**
+     * 滚动到正确的位置
+     */
     scrollContent: function (currentPosition) {
       // 0.设置正在滚动
       this.scrolling = true;
 
       // 1.开始滚动动画
-      this.swiperStyle.transition = "transform" + this.animDuration + "ms";
+      this.swiperStyle.transition = "transform " + this.animDuration + "ms";
       this.setTransform(currentPosition);
 
       // 2.判断滚动到的位置
       this.checkPosition();
+
       // 4.滚动完成
       this.scrolling = false;
     },
+
     /*
     校验正确的位置
     */
@@ -109,19 +111,20 @@ export default {
     设置滚动的位置
     */
     setTransform: function (position) {
-      this.swiperStyle.transform = `translate3d'(${position}px, 0,0)`;
+      this.swiperStyle.transform = `translate3d(${position}px, 0, 0)`;
       this.swiperStyle[
-        "-webpack-transform"
-      ] = `translate3d'(${position}px, 0,0)`;
-      this.swiperStyle["-ms-transform"] = `translate3d'(${position}px, 0,0)`;
+        "-webkit-transform"
+      ] = `translate3d(${position}px, 0, 0)`;
+      this.swiperStyle["-ms-transform"] = `translate3d(${position}px, 0, 0)`;
     },
+
     /*
     操作DOM，在DOM前后添加slide
     */
     handleDom: function () {
       // 1.获取要操作的元素
       let swiperEl = document.querySelector(".swiper");
-      let slidesEls = document.getElementsByClassName("slide");
+      let slidesEls = swiperEl.getElementsByClassName("slide");
 
       // 2。保存个数
       this.slideCount = slidesEls.length;
@@ -133,11 +136,11 @@ export default {
         swiperEl.insertBefore(cloneLast, slidesEls[0]);
         swiperEl.appendChild(cloneFirst);
         this.totalWidth = swiperEl.offsetWidth;
-        this.swiperStyle = swiper.style;
+        this.swiperStyle = swiperEl.style;
       }
 
       // 4.让swiper元素，显示第一个(目前是显示前面添加的最后一个元素)
-      this.setTransform(this.totalWidth);
+      this.setTransform(-this.totalWidth);
     },
     /*
     拖动事件的处理
@@ -157,7 +160,7 @@ export default {
       // 1.计算出用户拖动的距离
       this.currentX = e.touches[0].pageX;
       this.distance = this.currentX - this.startX;
-      let currentPosition = this.currentIndex * this.totalWidth;
+      let currentPosition = -this.currentIndex * this.totalWidth;
       let moveDistance = this.distance + currentPosition;
 
       // 2.设置当前的位置

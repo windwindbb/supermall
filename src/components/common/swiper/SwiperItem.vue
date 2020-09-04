@@ -12,11 +12,11 @@ export default {
 
 <style scoped>
 .slide {
-  widows: 100%;
+  width: 100%;
   flex-shrink: 0;
 }
 
 .slide img {
-  widows: 100%;
+  width: 100%;
 }
 </style>
